@@ -270,8 +270,8 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     lastview = get_lastview(s, recruit, uuid)
     get_watchpoint()
     save_database(s, ev.get_ev(
-        [recruit, biglessonid, smalllessonid, lastview, chapterid, "0", done, done,
-         done2time(done)]), token, courseid, uuid)
+        [recruit, biglessonid, smalllessonid, lastview, chapterid, "0", done, video['videoSec'],
+         done2time(video['videoSec'])]), token, courseid, uuid)
 
     global th_wa
     global th_do
@@ -424,8 +424,8 @@ def thread_data(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,vide
         watchstatus = 1
     lastview = get_lastview(s, recruit, uuid)
     save_database(s, ev.get_ev(
-        [recruit, biglessonid, smalllessonid, lastview, chapterid, watchstatus, done, done,
-         done2time(done)]), token, courseid, uuid)
+        [recruit, biglessonid, smalllessonid, lastview, chapterid, watchstatus, done, video['videoSec'],
+         done2time(video['videoSec'])]), token, courseid, uuid)
 
 
 def thread_status(s,lessonid,recruit,uuid,tp):
