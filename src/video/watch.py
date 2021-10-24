@@ -240,8 +240,7 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
         biglessonid = int(video['lessonid'])
 
     quiz = quiz_pointer(s,biglessonid,smalllessonid,recruit,courseid,uuid,tp)
-    # if quiz:
-    #     quiz = sorted(quiz,key = lambda q : q['timeSec'])
+    # quiz = sorted(quiz,key = lambda q : q['timeSec'])
 
     watchpoint = ''
     done = 0
@@ -276,7 +275,9 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     th_do = ThreadWithSwitch(thread_done,(video['videoSec'],),5,name="Update DoneTime")
     th_ca = ThreadWithSwitch(thread_cache,(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp),180,name="Save CacheData")
     th_da = ThreadWithSwitch(thread_data,(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp), 300,name="Save DataBase")
+
     th_st = ThreadWithSwitch(thread_status,(s,lessonid,recruit,uuid,tp),10,name="Watch Status")
+
     th_ex = ThreadExam(s, quiz,biglessonid,smalllessonid,uuid,courseid,recruit,name="Exam Check")
     th_ss = ThreadWithSwitch(show_status,(lessonid,video['videoSec'],len(quiz),totalwork,finished),5,name="Show Status")
     th_gt = ThreadWithSwitch(get_current_thread,(),wait=10,name="Get Current Thread Num")
@@ -322,7 +323,7 @@ class ThreadExam(threading.Thread):
     def run(self):
         global done
         for q in self.quiz:
-            while True:
+            while self.isrun:
                 if done >= q['timeSec']:
                     keyid = get_exam(self.s, self.biglessonid, self.smalllessonid, q['questionIds'], self.uuid)
                     do_exam(self.s, self.courseid, self.recruit, q['questionIds'], self.biglessonid, self.smalllessonid, keyid, self.uuid)
