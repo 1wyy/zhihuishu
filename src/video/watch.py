@@ -178,7 +178,8 @@ def save_cache(s, ev, token, uuid):
         'dateFormate': str(int(time.time())) + str('000'),
     }
     resp = s.post(url, data=data)
-    console.log('[yellow]savecache[/yellow]成功')
+    console.log(resp.json())
+    # console.log('[yellow]savecache[/yellow]成功')
     cache_time += 1
     watchpoint = '0,1,'
 
@@ -381,6 +382,15 @@ def thread_done(total):
         th_ca.trigger()
         th_da.trigger()
         th_st.trigger()
+        th_wa.isrun = False
+        th_do.isrun = False
+        th_ca.isrun = False
+        th_da.isrun = False
+        th_st.isrun = False
+        th_ex.isrun = False
+        th_ss.isrun = False
+        th_gt.isrun = False
+
 
 def thread_cache(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp):
     global watchpoint
