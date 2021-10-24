@@ -14,6 +14,19 @@ cache_time = 0
 data_time = 0
 
 
+def queryDisplay(s,secret):
+    url = 'https://studyservice.zhihuishu.com/learning/queryCourseDispMode?recruitAndCourseId='+ str(secret)
+    resp = s.get(url)
+    if resp.json()['data'] == 1 and resp.json()['code'] == 0:
+        return True
+    else:
+        return False
+
+
+
+
+
+
 def get_status(s,lessonid,recruit,uuid,tp):
     # console.log("获取视频课程完成进度:")
     url = 'https://studyservice.zhihuishu.com/learning/queryStuyInfo'
@@ -27,7 +40,14 @@ def get_status(s,lessonid,recruit,uuid,tp):
     else:
         data["lessonVideoIds[0]"] = lessonid
     resp = s.post(url,data=data)
-    state = resp.json()['data']['lesson'][lessonid]['watchState']
+    if 'lesson' in resp.json()['data']:
+        p = resp.json()['data']['lesson'][lessonid]
+        state = resp.json()['data']['lesson'][lessonid]['watchState']
+    elif 'lv' in resp.json()['data']:
+        p = resp.json()['data']['lv'][lessonid]
+        state = resp.json()['data']['lv'][lessonid]['watchState']
+    # console.log(p)
+    # console.log(state)
     # console.log(state)
     return state
 
@@ -66,7 +86,7 @@ def get_lastview(s,recruit,uuid):
     return resp.json()['data']['lastViewVideoId']
 
 
-def quiz_pointer(s,lessonid,recruit,courseid,uuid):
+def quiz_pointer(s,biglessonid,smalllessonid,recruit,courseid,uuid,tp):
     """
     返回一个列表，里面是问题的详细信息[{"timeSec":49,"questionIds":"16162964"}]
     :param s:
@@ -77,13 +97,24 @@ def quiz_pointer(s,lessonid,recruit,courseid,uuid):
     :return:
     """
     url = 'https://studyservice.zhihuishu.com/popupAnswer/loadVideoPointerInfo'
-    data = {
-        'lessonId': lessonid,
-        'recruitId': recruit,
-        'courseId': courseid,
-        'uuid': uuid,
-        'dateFormate': str(int(time.time())) + str('000'),
-    }
+    if tp == 'big':
+        data = {
+            'lessonId': int(biglessonid),
+            'recruitId': recruit,
+            'courseId': courseid,
+            'uuid': uuid,
+            'dateFormate': str(int(time.time())) + str('000'),
+        }
+    else:
+        data = {
+            'lessonId': int(biglessonid),
+            'lessonVideoId': int(smalllessonid),
+            'recruitId': recruit,
+            'courseId': courseid,
+            'uuid': uuid,
+            'dateFormate': str(int(time.time())) + str('000'),
+        }
+
     resp = s.post(url,data=data)
     return resp.json()['data']['questionPoint']
 
@@ -121,9 +152,12 @@ def save_database(s,ev,token,courseid,uuid,):
         'dateFormate': str(int(time.time())) + str('000'),
     }
     resp = s.post(url,data=data)
-    if resp.json()['data']['submitSuccess'] == True:
-        console.log("[yellow]savedatabase[/yellow]成功")
-        data_time += 1
+    try:
+        if resp.json()['data']['submitSuccess'] == True:
+            console.log("[yellow]savedatabase[/yellow]成功")
+            data_time += 1
+    except:
+        console.log("save_database出现异常，返回值为{}".format(resp.json()))
     watchpoint = '0,1,'
 
 def save_cache(s, ev, token, uuid):
@@ -183,7 +217,7 @@ def get_exam(s,biglessonid,smalllessonid,questionid,uuid):
             # console.log("答案id为:{}".format(option['id']))
             return option['id']
 
-def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwork,finished):
+def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwork,finished,secret):
     console.log("开始视频任务id:{}".format(videoid))
     """
     每两秒watchpoint一次
@@ -205,8 +239,9 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
         smalllessonid = int(lessonid)
         biglessonid = int(video['lessonid'])
 
-    quiz = quiz_pointer(s,lessonid,recruit,courseid,uuid)
-    quiz = sorted(quiz,key = lambda q : q['timeSec'])
+    quiz = quiz_pointer(s,biglessonid,smalllessonid,recruit,courseid,uuid,tp)
+    # if quiz:
+    #     quiz = sorted(quiz,key = lambda q : q['timeSec'])
 
     watchpoint = ''
     done = 0
@@ -214,8 +249,15 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     cache_time = 0
     data_time = 0
 
+
+    disp = queryDisplay(s,secret)
+
     # 初始化 全部更新一次
     token, done = get_token(s, courseid, chapterid, lessonid, recruit, videoid, uuid)
+    if (done + 10) > int(video['videoSec']):
+        done = int(video['videoSec'])
+    else:
+        done += 10
     lastview = get_lastview(s, recruit, uuid)
     get_watchpoint()
     save_database(s, ev.get_ev(
@@ -229,13 +271,15 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     global th_st
     global th_ex
     global th_ss
+    global th_gt
     th_wa = ThreadWithSwitch(get_watchpoint,(),2,name="Update WatchPoint")
-    th_do = ThreadWithSwitch(thread_done,(),5,name="Update DoneTime")
+    th_do = ThreadWithSwitch(thread_done,(video['videoSec'],),5,name="Update DoneTime")
     th_ca = ThreadWithSwitch(thread_cache,(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp),180,name="Save CacheData")
     th_da = ThreadWithSwitch(thread_data,(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp), 300,name="Save DataBase")
     th_st = ThreadWithSwitch(thread_status,(s,lessonid,recruit,uuid,tp),10,name="Watch Status")
     th_ex = ThreadExam(s, quiz,biglessonid,smalllessonid,uuid,courseid,recruit,name="Exam Check")
     th_ss = ThreadWithSwitch(show_status,(lessonid,video['videoSec'],len(quiz),totalwork,finished),5,name="Show Status")
+    th_gt = ThreadWithSwitch(get_current_thread,(),wait=10,name="Get Current Thread Num")
 
     th_wa.start()
     th_do.start()
@@ -244,8 +288,14 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     th_ex.start()
     th_ss.start()
     th_st.start()
-
+    th_gt.start()
     th_st.join()
+
+
+def get_current_thread():
+    console.log(threading.enumerate())
+
+
 
 def show_status(lessonid,totaltime,totalexam,totalwork,finished):
     global done
@@ -281,6 +331,7 @@ class ThreadExam(threading.Thread):
                 time.sleep(10)
 
 
+
 class ThreadWithSwitch(threading.Thread):
     def __init__(self,func,args,wait,name='',isrun=True):
         self.isrun = isrun
@@ -295,7 +346,10 @@ class ThreadWithSwitch(threading.Thread):
             time.sleep(self.wait)
             self._target(*self._args)
 
-
+    def trigger(self):
+        global watchpoint
+        global done
+        self._target(*self._args)
 
 # def thread_study(s,recruit,schoolid,uuid):
 #     url = 'https://studyservice.zhihuishu.com/course/queryStudiedTimeLimitInfo?recruitId='+str(recruit)+'&schoolId='+str(schoolid)+'&uuid='+str(uuid)+'&dateFormate='+str(int(time.time())) + str('000')
@@ -304,9 +358,13 @@ class ThreadWithSwitch(threading.Thread):
 
 
 
-def thread_done():
+def thread_done(total):
     global done
     done += 5
+    if done > total:
+        done = total
+        th_ca.trigger()
+        th_da.trigger()
 
 
 def thread_cache(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp):
@@ -338,6 +396,7 @@ def thread_data(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,vide
 
 def thread_status(s,lessonid,recruit,uuid,tp):
     status = get_status(s,lessonid,recruit,uuid,tp)
+
     if status == 1:
         th_wa.isrun = False
         th_do.isrun = False
@@ -346,12 +405,14 @@ def thread_status(s,lessonid,recruit,uuid,tp):
         th_st.isrun = False
         th_ex.isrun = False
         th_ss.isrun = False
+        th_gt.isrun = False
 
-def watch_all(s,all_videos,lessons,courseid,recruit,uuid, finished):
+def watch_all(s,all_videos,lessons,courseid,recruit,uuid, finished,secret):
+    console.log("开始观看视频")
     for lesson in lessons:
         for video in all_videos:
             if int(video['id']) == int(lesson):
-                start_watch(s,courseid,video['chapterid'],lesson,recruit,video['videoId'],uuid,video,len(all_videos), finished)
+                start_watch(s,courseid,video['chapterid'],lesson,recruit,video['videoId'],uuid,video,len(all_videos), finished,secret)
                 finished += 1
                 console.log("当前视频任务{}已完成，5秒后启动下一个视频任务".format(video['videoId']))
                 time.sleep(5)

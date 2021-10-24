@@ -2,11 +2,10 @@ import requests
 import time
 from rich.console import Console
 
-
 console = Console()
 
 
-def get_load_studyinfo_data(recruitid,uuid,big,small):
+def get_load_studyinfo_data(recruitid, uuid, big, small):
     data = {}
     i = 0
     while i < len(big):
@@ -21,24 +20,27 @@ def get_load_studyinfo_data(recruitid,uuid,big,small):
     data['dateFormate'] = str(int(time.time())) + str('000')
     return data
 
-def load_studyinfo(s,recruitid,uuid,big,small):
-    url = 'https://studyservice.zhihuishu.com/learning/queryStuyInfo'
 
-    data = get_load_studyinfo_data(recruitid,uuid,big,small)
-    resp = s.post(url,data=data)
-    lessons = resp.json()['data']['lesson']
+def load_studyinfo(s, recruitid, uuid, big, small):
+    lessons = {}
+    url = 'https://studyservice.zhihuishu.com/learning/queryStuyInfo'
+    data = get_load_studyinfo_data(recruitid, uuid, big, small)
+    resp = s.post(url, data=data)
+    for i in resp.json()['data']['lesson']:
+        lessons[str(i)] = resp.json()['data']['lesson'][str(i)]
+    for t in resp.json()['data']['lv']:
+        lessons[str(t)] = resp.json()['data']['lv'][str(t)]
     l = {}
     finished = 0
     for lesson in lessons:
-        if lessons[lesson]['watchState'] != 1 and lessons[lesson]['watchState'] != 2:
+        if lessons[lesson]['watchState'] != 1:
             l[lesson] = lessons[lesson]
         else:
             finished += 1
     return l, finished
 
 
-
-def load_videolist(s,secret,uuid):
+def load_videolist(s, secret, uuid):
     console.log("开始获取[yellow]所有视频[/yellow]的详细信息")
     url = 'https://studyservice.zhihuishu.com/learning/videolist'
     data = {
@@ -55,16 +57,16 @@ def process_videolist(videolist):
     console.log("开始处理获取得到的videolist")
     small_lessons = []
     big_lessons = []
-    chapterdtos = videolist['data']['videoChapterDtos'] #所有的章节
+    chapterdtos = videolist['data']['videoChapterDtos']  # 所有的章节
     for chapterdto in chapterdtos:
-        chapterid = chapterdto['id']    #章节id
-        chapternm = chapterdto['name']  #章节名
-        videolessons = chapterdto['videoLessons']   #所有的大lesson分类
+        chapterid = chapterdto['id']  # 章节id
+        chapternm = chapterdto['name']  # 章节名
+        videolessons = chapterdto['videoLessons']  # 所有的大lesson分类
         for videolesson in videolessons:
-            if 'videoSmallLessons' in videolesson:  #存在小lesson，当前大lesson为小章节
+            if 'videoSmallLessons' in videolesson:  # 存在小lesson，当前大lesson为小章节
                 lessonid = videolesson['id']
-                smalllessons = videolesson['videoSmallLessons'] #所有的小lesson
-                for smalllesson in smalllessons:    #每个小lesson
+                smalllessons = videolesson['videoSmallLessons']  # 所有的小lesson
+                for smalllesson in smalllessons:  # 每个小lesson
                     smalllesson['lessonid'] = lessonid
                     smalllesson['chapterid'] = chapterid
                     smalllesson['chapternm'] = chapternm
@@ -78,8 +80,8 @@ def process_videolist(videolist):
     return small_lessons, big_lessons
 
 
-def load_all(s,secret,uuid,recruit,usernm):
-    videolist = load_videolist(s,secret,uuid)
+def load_all(s, secret, uuid, recruit, usernm):
+    videolist = load_videolist(s, secret, uuid)
     small, big = process_videolist(videolist)
     lessons, finished = load_studyinfo(s, recruit, uuid, big, small)
     all_videos = []

@@ -20,4 +20,4 @@ if __name__ == '__main__':
     usernm, info, uuid, schoolid, schoolnm, sharecourses = login.login_main(s)
     match = show.show_course(s,sharecourses,usernm)
     all_videos, lessons, finished = load.load_all(s,match['secret'],uuid,match['recruitid'],usernm)
-    watch.watch_all(s, all_videos, lessons,match['courseid'],match['recruitid'],uuid, finished)
+    watch.watch_all(s, all_videos, lessons,match['courseid'],match['recruitid'],uuid, finished,match['secret'])
