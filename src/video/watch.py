@@ -14,7 +14,7 @@ cache_time = 0
 data_time = 0
 current_thread = 0
 watchstatus = 0
-
+finish = False
 
 def queryDisplay(s,secret):
     url = 'https://studyservice.zhihuishu.com/learning/queryCourseDispMode?recruitAndCourseId='+ str(secret)
@@ -48,9 +48,8 @@ def get_status(s,lessonid,recruit,uuid,tp):
     elif 'lv' in resp.json()['data']:
         p = resp.json()['data']['lv'][lessonid]
         state = resp.json()['data']['lv'][lessonid]['watchState']
-    # console.log(p)
-    # console.log(state)
-    # console.log(state)
+    if state == 1:
+        console.log("视频已完成,watchState返回值为1")
     return state
 
 
@@ -178,7 +177,7 @@ def save_cache(s, ev, token, uuid):
         'dateFormate': str(int(time.time())) + str('000'),
     }
     resp = s.post(url, data=data)
-    console.log(resp.json())
+    # console.log(resp.json())
     # console.log('[yellow]savecache[/yellow]成功')
     cache_time += 1
     watchpoint = '0,1,'
@@ -237,7 +236,7 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     global cache_time
     global data_time
     global watchstatus
-
+    global finish
 
     tp = video['type']
     if video['type'] == 'big':
@@ -257,6 +256,7 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     cache_time = 0
     data_time = 0
     watchstatus = 0
+    finish = False
     disp = queryDisplay(s,secret)
 
     # 初始化 全部更新一次
@@ -375,21 +375,23 @@ class ThreadWithSwitch(threading.Thread):
 def thread_done(total):
     global done
     global watchstatus
+    global finish
     done += 5
     if done > total:
         watchstatus = 1
+        finish = True
         done = total
-        th_ca.trigger()
+        # th_ca.trigger()
         th_da.trigger()
         th_st.trigger()
-        th_wa.isrun = False
-        th_do.isrun = False
-        th_ca.isrun = False
-        th_da.isrun = False
-        th_st.isrun = False
-        th_ex.isrun = False
-        th_ss.isrun = False
-        th_gt.isrun = False
+        # th_wa.isrun = False
+        # th_ca.isrun = False
+        # th_da.isrun = False
+        # th_st.isrun = False
+        # th_ex.isrun = False
+        # th_ss.isrun = False
+        # th_gt.isrun = False
+        # th_do.isrun = False
 
 
 def thread_cache(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp):
@@ -409,11 +411,17 @@ def thread_data(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,vide
     global watchpoint
     global done
     global watchstatus
+    global finish
+    watch = 0
+    if watchstatus == 1 and finish:
+        watch = 1
     if tp == 'big':
         lessonid = biglessonid
     else:
         lessonid = smalllessonid
     token = get_token(s, courseid, chapterid, lessonid, recruit, videoid, uuid)
+    if watch == 1:
+        watchstatus = 1
     lastview = get_lastview(s, recruit, uuid)
     save_database(s, ev.get_ev(
         [recruit, biglessonid, smalllessonid, lastview, chapterid, watchstatus, done, done,
