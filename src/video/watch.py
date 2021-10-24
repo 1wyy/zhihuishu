@@ -12,6 +12,8 @@ done = 0
 exam_done = 0
 cache_time = 0
 data_time = 0
+current_thread = 0
+watchstatus = 0
 
 
 def queryDisplay(s,secret):
@@ -53,6 +55,7 @@ def get_status(s,lessonid,recruit,uuid,tp):
 
 
 def get_token(s,courseid,chapterid,lessonid,recruit,videoid,uuid):
+    global watchstatus
     # console.log("获取Token:")
     url = 'https://studyservice.zhihuishu.com/learning/prelearningNote'
     data = {
@@ -66,6 +69,8 @@ def get_token(s,courseid,chapterid,lessonid,recruit,videoid,uuid):
         'dateFormate': str(int(time.time())) + str('000')
     }
     resp = s.post(url,data=data)
+    watchstatus = resp.json()['data']['studiedLessonDto']['watchState']
+
     token = resp.json()['data']['studiedLessonDto']['id']
     token = base64.b64encode(str(token).encode('utf8')).decode('utf8')
     already = resp.json()['data']['studiedLessonDto']['learnTimeSec']
@@ -230,6 +235,8 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     global exam_done
     global cache_time
     global data_time
+    global watchstatus
+
 
     tp = video['type']
     if video['type'] == 'big':
@@ -242,26 +249,28 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     quiz = quiz_pointer(s,biglessonid,smalllessonid,recruit,courseid,uuid,tp)
     # quiz = sorted(quiz,key = lambda q : q['timeSec'])
 
+
     watchpoint = ''
     done = 0
     exam_done = 0
     cache_time = 0
     data_time = 0
-
-
+    watchstatus = 0
     disp = queryDisplay(s,secret)
 
     # 初始化 全部更新一次
     token, done = get_token(s, courseid, chapterid, lessonid, recruit, videoid, uuid)
-    if (done + 10) > int(video['videoSec']):
-        done = int(video['videoSec'])
-    else:
-        done += 10
+    console.log("本视频已经看了{}秒".format(done))
+
+    # if (done + 10) > int(video['videoSec']):
+    #     done = int(video['videoSec'])
+    # else:
+    #     done += 10
     lastview = get_lastview(s, recruit, uuid)
     get_watchpoint()
     save_database(s, ev.get_ev(
-        [recruit, biglessonid, smalllessonid, lastview, chapterid, '0', done, video['videoSec'],
-         done2time(video['videoSec'])]), token, courseid, uuid)
+        [recruit, biglessonid, smalllessonid, lastview, chapterid, "0", done, done,
+         done2time(done)]), token, courseid, uuid)
 
     global th_wa
     global th_do
@@ -271,6 +280,7 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     global th_ex
     global th_ss
     global th_gt
+
     th_wa = ThreadWithSwitch(get_watchpoint,(),2,name="Update WatchPoint")
     th_do = ThreadWithSwitch(thread_done,(video['videoSec'],),5,name="Update DoneTime")
     th_ca = ThreadWithSwitch(thread_cache,(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp),180,name="Save CacheData")
@@ -294,7 +304,8 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
 
 
 def get_current_thread():
-    console.log(threading.enumerate())
+    global current_thread
+    current_thread = len(threading.enumerate())
 
 
 
@@ -303,8 +314,9 @@ def show_status(lessonid,totaltime,totalexam,totalwork,finished):
     global exam_done
     global data_time
     global cache_time
+    global current_thread
     status = ('#' * int(float(done) / float(totaltime) * float(20))).ljust(20,'-')
-    console.print("任务ID：[yellow]{}[/yellow]  进度 {} [red]{}[/red]秒/[red]{}[/red]秒  测验：[red]{}[/red]/[red]{}[/red]  Cache:[red]{}[/red]次  Data:[red]{}[/red]次 总任务:[red]{}[/red]/[red]{}[/red]".format(lessonid,status,done,totaltime,exam_done,totalexam,cache_time,data_time,finished,totalwork),end='\r')
+    console.print("任务ID：[yellow]{}[/yellow]  进度 {} [red]{}[/red]秒/[red]{}[/red]秒  测验：[red]{}[/red]/[red]{}[/red]  Cache:[red]{}[/red]次  Data:[red]{}[/red]次 总任务:[red]{}[/red]/[red]{}[/red] 线程:[red]{}[/red]个".format(lessonid,status,done,totaltime,exam_done,totalexam,cache_time,data_time,finished,totalwork,current_thread),end='\r')
 
 
 class ThreadExam(threading.Thread):
@@ -361,12 +373,14 @@ class ThreadWithSwitch(threading.Thread):
 
 def thread_done(total):
     global done
+    global watchstatus
     done += 5
     if done > total:
+        watchstatus = 1
         done = total
         th_ca.trigger()
         th_da.trigger()
-
+        th_st.trigger()
 
 def thread_cache(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp):
     global watchpoint
@@ -384,6 +398,7 @@ def thread_cache(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,vid
 def thread_data(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp):
     global watchpoint
     global done
+    global watchstatus
     if tp == 'big':
         lessonid = biglessonid
     else:
@@ -391,8 +406,8 @@ def thread_data(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,vide
     token = get_token(s, courseid, chapterid, lessonid, recruit, videoid, uuid)
     lastview = get_lastview(s, recruit, uuid)
     save_database(s, ev.get_ev(
-        [recruit, biglessonid, smalllessonid, lastview, chapterid, '0', done, video['videoSec'],
-         done2time(video['videoSec'])]), token, courseid, uuid)
+        [recruit, biglessonid, smalllessonid, lastview, chapterid, watchstatus, done, done,
+         done2time(done)]), token, courseid, uuid)
 
 
 def thread_status(s,lessonid,recruit,uuid,tp):
