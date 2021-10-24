@@ -33,8 +33,6 @@ def Y(t):
 def get_ev(params):
     # s = [recruitid, lessonid, smalllessonid, lastviewid, chapterid, studystatus, doneplaytimes, totaltimes, doneplaytsp]
     s = params
-    print(params)
-    input()
     # s = [82599, 1000072798, 1000066374, 230863, 1000055384, '0', 150, 230, '00:03:49']
     e = Z(s)
     e = X(e)
