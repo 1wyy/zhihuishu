@@ -384,14 +384,14 @@ def thread_done(total):
         # th_ca.trigger()
         th_da.trigger()
         th_st.trigger()
-        # th_wa.isrun = False
-        # th_ca.isrun = False
-        # th_da.isrun = False
-        # th_st.isrun = False
-        # th_ex.isrun = False
-        # th_ss.isrun = False
-        # th_gt.isrun = False
-        # th_do.isrun = False
+        th_wa.isrun = False
+        th_ca.isrun = False
+        th_da.isrun = False
+        th_st.isrun = False
+        th_ex.isrun = False
+        th_ss.isrun = False
+        th_gt.isrun = False
+        th_do.isrun = False
 
 
 def thread_cache(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp):
