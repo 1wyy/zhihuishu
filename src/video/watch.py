@@ -247,7 +247,7 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
         biglessonid = int(video['lessonid'])
 
     quiz = quiz_pointer(s,biglessonid,smalllessonid,recruit,courseid,uuid,tp)
-    # quiz = sorted(quiz,key = lambda q : q['timeSec'])
+    quiz = sorted(quiz,key = lambda q : q['timeSec'])
 
 
     watchpoint = ''
