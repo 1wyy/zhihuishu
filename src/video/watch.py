@@ -25,10 +25,6 @@ def queryDisplay(s,secret):
         return False
 
 
-
-
-
-
 def get_status(s,lessonid,recruit,uuid,tp):
     # console.log("获取视频课程完成进度:")
     url = 'https://studyservice.zhihuishu.com/learning/queryStuyInfo'
@@ -269,14 +265,14 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     #     done += 10
     lastview = get_lastview(s, recruit, uuid)
     get_watchpoint()
-    save_database(s, ev.get_ev(
-        [recruit, biglessonid, smalllessonid, lastview, chapterid, "0", done, video['videoSec'],
-         done2time(video['videoSec'])]), token, courseid, uuid)
+    # save_database(s, ev.get_ev(
+    #     [recruit, biglessonid, smalllessonid, lastview, chapterid, "0", done, video['videoSec'],
+    #      done2time(video['videoSec'])]), token, courseid, uuid)
 
     global th_wa
     global th_do
     global th_ca
-    global th_da
+    # global th_da
     global th_st
     global th_ex
     global th_ss
@@ -285,7 +281,7 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     th_wa = ThreadWithSwitch(get_watchpoint,(),2,name="Update WatchPoint")
     th_do = ThreadWithSwitch(thread_done,(video['videoSec'],),5,name="Update DoneTime")
     th_ca = ThreadWithSwitch(thread_cache,(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp),180,name="Save CacheData")
-    th_da = ThreadWithSwitch(thread_data,(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp), 300,name="Save DataBase")
+    # th_da = ThreadWithSwitch(thread_data,(s,recruit,chapterid,courseid,biglessonid,smalllessonid,uuid,videoid,video,tp), 300,name="Save DataBase")
 
     th_st = ThreadWithSwitch(thread_status,(s,lessonid,recruit,uuid,tp),10,name="Watch Status")
 
@@ -296,7 +292,7 @@ def start_watch(s,courseid,chapterid,lessonid,recruit,videoid,uuid,video,totalwo
     th_wa.start()
     th_do.start()
     th_ca.start()
-    th_da.start()
+    # th_da.start()
     th_ex.start()
     th_ss.start()
     th_st.start()
@@ -382,11 +378,11 @@ def thread_done(total):
         finish = True
         done = total
         # th_ca.trigger()
-        th_da.trigger()
+        # th_da.trigger()
         th_st.trigger()
         th_wa.isrun = False
         th_ca.isrun = False
-        th_da.isrun = False
+        # th_da.isrun = False
         th_st.isrun = False
         th_ex.isrun = False
         th_ss.isrun = False
@@ -435,7 +431,7 @@ def thread_status(s,lessonid,recruit,uuid,tp):
         th_wa.isrun = False
         th_do.isrun = False
         th_ca.isrun = False
-        th_da.isrun = False
+        # th_da.isrun = False
         th_st.isrun = False
         th_ex.isrun = False
         th_ss.isrun = False
