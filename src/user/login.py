@@ -159,9 +159,10 @@ def do_login(s,usernm,passwd,lt):
             'remember': 'on', }
     resp = s.post(url,data=data)
     # resp = s.post(url,headers=headers,data=data)
+
     soup = BeautifulSoup(resp.content.decode('utf8'),'lxml')
 
-    if soup.title.string == '智慧树在线学堂':
+    if soup.title.string != '智慧树在线教育_全球大型的学分课程运营服务平台':
         console.log('[yellow]登录成功[/yellow]')
         # print(resp.text)
     else:
