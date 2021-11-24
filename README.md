@@ -24,10 +24,6 @@
 
 <font color=white size=3 align=center face="微软雅黑">3. python main.py 运行代码</font>
 
-## <center><font color=white size=6 align=center face="微软雅黑"> :bowtie: README文档</font></center>
-Github/xz454867105/zhihuishu的官方文档介绍：[点击访问](https://blog.samuelchen.cn/coding_python/zhihuishu-js-reverse.html)
-
-
 ## <center><font color=white size=6 align=center face="微软雅黑"> :grey_exclamation: 提醒&注释</font></center>
 
 <font color=white size=3 color=red face="微软雅黑">:one: 程序在python 3.6的环境下开发完成，建议使用Python 3.6运行本程序</font>  
